@@ -1,21 +1,28 @@
-# ------------ STAGE 1: Build the Spring Boot JAR ------------
-FROM eclipse-temurin:17-jdk-alpine as builder
+# ---------- STAGE 1: build with Maven ----------
+FROM maven:3.9.6-eclipse-temurin-17 as builder
 WORKDIR /app
 
-# Copy project files
-COPY . .
+# Copy pom and source
+COPY pom.xml .
+COPY src ./src
 
-# Build the jar using Maven
-RUN ./mvnw -B -DskipTests package || mvn -B -DskipTests package
+# If you have other files (properties, etc) copy them too:
+# COPY mvnw .
+# COPY .mvn .mvn
+# COPY settings.xml .
 
-# ------------ STAGE 2: Run the Application ------------------
+# Build the project
+RUN mvn -B -DskipTests package
+
+# ---------- STAGE 2: runtime ----------
 FROM eclipse-temurin:17-jdk-alpine
 WORKDIR /app
 
-# Copy the built JAR from builder stage
+# Copy the jar built in the builder stage
 COPY --from=builder /app/target/*.jar app.jar
 
 EXPOSE 8080
 
 ENTRYPOINT ["sh", "-c", "java -Dserver.port=$PORT -jar app.jar"]
+
 
